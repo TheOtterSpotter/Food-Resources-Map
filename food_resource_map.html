@@ -1,0 +1,2722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Resource Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #2d6a4f;
+    --green-light: #40916c;
+    --green-pale: #d8f3dc;
+    --green-mid: #b7e4c7;
+    --cream: #faf7f2;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e0d8;
+    --white: #ffffff;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--green);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  header .logo span { color: var(--green-mid); }
+  header .tagline {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+  }
+  .header-left { flex: 1; }
+  .header-count {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* ── SEARCH BAR ── */
+  .search-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .search-bar label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .search-bar input {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    width: 180px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-bar input:focus { border-color: var(--green-light); }
+  .search-bar select {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    background: white;
+    outline: none;
+    cursor: pointer;
+  }
+  .btn {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--green-light); }
+  .btn-outline {
+    background: transparent;
+    color: var(--green);
+    border: 1.5px solid var(--green);
+  }
+  .btn-outline:hover { background: var(--green-pale); }
+  .county-filters {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip.active {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 340px;
+    min-width: 300px;
+    background: white;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .sidebar-header h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .sidebar-header .count-badge {
+    background: var(--green-pale);
+    color: var(--green);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .sidebar-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-search input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px 7px 32px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+    transition: border-color 0.2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green-light); }
+  .sidebar-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 6px 0;
+  }
+  .sidebar-list::-webkit-scrollbar { width: 4px; }
+  .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .list-item {
+    padding: 11px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f0ea;
+    transition: background 0.12s;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .list-item:hover { background: var(--green-pale); }
+  .list-item.active { background: var(--green-pale); border-left: 3px solid var(--green); }
+  .list-item-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .list-item-meta {
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .county-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .dot-pinellas { background: var(--green); }
+  .dot-manatee { background: #e76f51; }
+  .no-results {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  /* ── MAP ── */
+  #map {
+    flex: 1;
+    z-index: 1;
+  }
+
+  /* ── RADIUS CIRCLE LABEL ── */
+  .radius-info {
+    position: absolute;
+    bottom: 30px;
+    right: 10px;
+    z-index: 500;
+    background: white;
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    display: none;
+  }
+
+  /* ── POPUP ── */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 0 !important;
+    overflow: hidden;
+    max-width: 280px;
+  }
+  .leaflet-popup-content { margin: 0 !important; width: auto !important; }
+  .leaflet-popup-tip { display: none; }
+  .popup-inner {
+    padding: 16px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .popup-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--green);
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+  .popup-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .popup-row .icon { flex-shrink: 0; margin-top: 1px; }
+  .popup-chip {
+    display: inline-block;
+    background: var(--green-pale);
+    color: var(--green);
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+
+  /* ── RADIUS RING ANIMATION ── */
+  .leaflet-interactive { transition: none; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 680px) {
+    .sidebar { width: 100%; min-width: unset; height: 240px; border-right: none; border-bottom: 1px solid var(--border); }
+    .main { flex-direction: column; }
+    .county-filters { margin-left: 0; width: 100%; }
+    .search-bar { gap: 8px; }
+    .header-count { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">Food <span>Resources</span> Map</div>
+    <div class="tagline">Pinellas &amp; Manatee Counties, Florida</div>
+  </div>
+  <div class="header-count" id="headerCount">174 locations</div>
+</header>
+
+<div class="search-bar">
+  <label>📍 Search radius:</label>
+  <input type="text" id="zipInput" placeholder="Enter ZIP or address" style="width:200px">
+  <select id="radiusSelect">
+    <option value="1">1 mile</option>
+    <option value="3">3 miles</option>
+    <option value="5" selected>5 miles</option>
+    <option value="10">10 miles</option>
+    <option value="25">25 miles</option>
+    <option value="50">50 miles</option>
+  </select>
+  <button class="btn" onclick="searchRadius()">Search</button>
+  <button class="btn btn-outline" onclick="clearSearch()">Show All</button>
+  <div class="county-filters">
+    <button class="filter-chip active" onclick="filterCounty('all', this)">All Counties</button>
+    <button class="filter-chip" onclick="filterCounty('Pinellas', this)">Pinellas</button>
+    <button class="filter-chip" onclick="filterCounty('Manatee', this)">Manatee</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Locations</h2>
+      <span class="count-badge" id="sidebarCount">174</span>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="nameSearch" placeholder="Filter by name..." oninput="filterByName(this.value)">
+    </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </div>
+  <div id="map"></div>
+  <div class="radius-info" id="radiusInfo"></div>
+</div>
+
+<script>
+const RAW_LOCATIONS = [
+  {
+    "name": "60th Street Baptist Church",
+    "phone": "727-557-4061",
+    "address": "9309 60th St",
+    "city": "Pinellas Park",
+    "zip": "33782",
+    "county": "Pinellas",
+    "hours": "2nd and Last Friday 1-3pm",
+    "services": "Food Giveaway",
+    "lat": 27.8568,
+    "lon": -82.7157
+  },
+  {
+    "name": "Abundant Life Ministries",
+    "phone": "727-210-5433",
+    "address": "1550 Belcher Rd S",
+    "city": "Clearwater",
+    "zip": "33771",
+    "county": "Pinellas",
+    "hours": "Sat 7am-10am",
+    "services": "Food Giveaway",
+    "lat": 27.9024,
+    "lon": -82.7468
+  },
+  {
+    "name": "Aldersgate UMC",
+    "phone": "727-392-9365 / 727-391-0218",
+    "address": "9530 Starkey Rd",
+    "city": "Seminole",
+    "zip": "33777",
+    "county": "Pinellas",
+    "hours": "Mon, Tues, Thurs 9:30am-1pm",
+    "services": "Food Pantry",
+    "lat": 27.8581,
+    "lon": -82.763
+  },
+  {
+    "name": "Beach Community Food Pantry (Calvary Episcopal Church)",
+    "phone": "727-282-4085",
+    "address": "1615 1st St",
+    "city": "Indian Rocks Beach",
+    "zip": "33785",
+    "county": "Pinellas",
+    "hours": "Wed 10am-12pm; Thurs 5pm-7pm",
+    "services": "Food Pantry",
+    "lat": 27.8994,
+    "lon": -82.8469
+  },
+  {
+    "name": "Beaming Hope Food Pantry",
+    "phone": "727-521-7305",
+    "address": "11000 110th Ave N",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "Food Pantry",
+    "lat": 27.8723,
+    "lon": -82.792
+  },
+  {
+    "name": "Christ the King Lutheran Church",
+    "phone": "727-595-2117",
+    "address": "11220 Oakhurst Rd",
+    "city": "Largo",
+    "zip": "33774",
+    "county": "Pinellas",
+    "hours": "Sat 2pm-4:30pm",
+    "services": "Food, veggies, fruit, bread, frozen meats",
+    "lat": 27.8755,
+    "lon": -82.8332
+  },
+  {
+    "name": "Clearwater Community Church - Harriet's House",
+    "phone": "727-799-4444",
+    "address": "2897 Belcher Rd",
+    "city": "Dunedin",
+    "zip": "34698",
+    "county": "Pinellas",
+    "hours": "Tues 9am-12pm",
+    "services": "Food Pantry",
+    "lat": 28.0259,
+    "lon": -82.7454
+  },
+  {
+    "name": "Clearview UMC Emergency Food Pantry",
+    "phone": "727-522-4673",
+    "address": "4515 38th Ave N",
+    "city": "St. Pete",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "Sat 9am-12pm",
+    "services": "Food Pantry",
+    "lat": 27.8071,
+    "lon": -82.6945
+  },
+  {
+    "name": "Crossroads Christian Church",
+    "phone": "727-584-8601",
+    "address": "1645 Seminole Blvd",
+    "city": "Largo",
+    "zip": "33770",
+    "county": "Pinellas",
+    "hours": "Wed 10am-1pm",
+    "services": "Food Pantry",
+    "lat": 27.9013,
+    "lon": -82.786
+  },
+  {
+    "name": "Daystar Life",
+    "phone": "727-825-0442",
+    "address": "226 6th St S",
+    "city": "St. Pete",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "M,T,Th,F 9am-3pm",
+    "services": "Food Pantry; Other assistance",
+    "lat": 27.7688,
+    "lon": -82.6415
+  },
+  {
+    "name": "Dunedin Cares Food Pantry",
+    "phone": "727-410-8495",
+    "address": "1630 Pinehurst Rd",
+    "city": "Dunedin",
+    "zip": "34698",
+    "county": "Pinellas",
+    "hours": "M 5:30-7:30pm; T,Th,Sat 9:30am-12pm",
+    "services": "Food Pantry",
+    "lat": 28.0272,
+    "lon": -82.7727
+  },
+  {
+    "name": "Feeding Tampa Bay",
+    "phone": "813-710-6269",
+    "address": "6330 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "T,Th,F 1:30pm-4:30pm",
+    "services": "Food Distribution",
+    "lat": 27.8204,
+    "lon": -82.7226
+  },
+  {
+    "name": "Good Neighbors",
+    "phone": "727-314-1373 (text only)",
+    "address": "1676 S Belcher Rd",
+    "city": "Clearwater",
+    "zip": "33771",
+    "county": "Pinellas",
+    "hours": "Fri 11am-12pm",
+    "services": "Community Grocery Giveaway",
+    "lat": 27.9359,
+    "lon": -82.7465
+  },
+  {
+    "name": "Good Samaritan Church",
+    "phone": "727-544-8558",
+    "address": "6085 Park Blvd",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "M & Th 9am-12pm",
+    "services": "Food Pantry",
+    "lat": 27.8395,
+    "lon": -82.7181
+  },
+  {
+    "name": "Heart Society (Sacred Heart Church)",
+    "phone": "727-544-5445",
+    "address": "4661 82 Ave N",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "T/Th 9am-11am",
+    "services": "Food Pantry",
+    "lat": 27.846,
+    "lon": -82.6965
+  },
+  {
+    "name": "HOB Giveback",
+    "phone": "727-474-5584",
+    "address": "931 Huntley Ave",
+    "city": "Dunedin",
+    "zip": "34698",
+    "county": "Pinellas",
+    "hours": "Sat 11am",
+    "services": "Food Giveaway",
+    "lat": 28.0137,
+    "lon": -82.789
+  },
+  {
+    "name": "Hope Villages of America",
+    "phone": "727-443-4031",
+    "address": "700 Druid Rd",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "M-F 12:30pm-3:30pm; Thurs until 6:30pm",
+    "services": "Food Pantry; Call for help",
+    "lat": 27.9577,
+    "lon": -82.7966
+  },
+  {
+    "name": "Northside Baptist Church",
+    "phone": "727-482-2128",
+    "address": "6000 38th Ave N",
+    "city": "St. Pete",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "Wed 6pm-8pm; Fri 10am-12pm",
+    "services": "Food Pantry",
+    "lat": 27.8058,
+    "lon": -82.7169
+  },
+  {
+    "name": "Northwest Presbyterian Church",
+    "phone": "727-544-4551",
+    "address": "6330 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "Tues, Thurs, Fri 1:30pm-4:30pm",
+    "services": "Operated by Feeding Tampa Bay; Trinity Cafe meals M-F 11:30am-12:30pm",
+    "lat": 27.8205,
+    "lon": -82.7226
+  },
+  {
+    "name": "Oak Ridge Wesleyan",
+    "phone": "727-393-9182",
+    "address": "11000 110th Ave",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "Wed & Sat 9am-12pm",
+    "services": "Food Pantry",
+    "lat": 27.8723,
+    "lon": -82.792
+  },
+  {
+    "name": "Operation Attack",
+    "phone": "727-822-1187",
+    "address": "1310 22nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "Food, Financial Assistance",
+    "lat": 27.7481,
+    "lon": -82.6528
+  },
+  {
+    "name": "Operation Hope",
+    "phone": "727-822-2437",
+    "address": "2901 54th Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "Food, Financial, Clothing",
+    "lat": 27.7208,
+    "lon": -82.6723
+  },
+  {
+    "name": "St. Giles Episcopal Church Pantry",
+    "phone": "727-545-2664",
+    "address": "8271 52nd St N",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "Thurs 9:30am-12:30pm",
+    "services": "Drive-up Pantry",
+    "lat": 27.8469,
+    "lon": -82.7034
+  },
+  {
+    "name": "St. Jerome's Catholic Church",
+    "phone": "727-595-4610",
+    "address": "10895 Hamlin Blvd",
+    "city": "Largo",
+    "zip": "33774",
+    "county": "Pinellas",
+    "hours": "Wed 8:30am-11:30am; Last Sat 9:30am-11:30am",
+    "services": "Food Pantry",
+    "lat": 27.8722,
+    "lon": -82.8393
+  },
+  {
+    "name": "St. Paul UMC Open Arms Ministry",
+    "phone": "727-586-5380",
+    "address": "2039 Druid Rd",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "Mon-Wed 1pm-3pm",
+    "services": "Food Pantry",
+    "lat": 27.9566,
+    "lon": -82.7527
+  },
+  {
+    "name": "St. Petersburg Free Clinic",
+    "phone": "727-823-3471",
+    "address": "863 3rd Ave N",
+    "city": "St. Pete",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "M-W 8:30am-3pm; Th 8:30am-7pm",
+    "services": "Food, Utilities, Rent, Medical",
+    "lat": 27.7754,
+    "lon": -82.6462
+  },
+  {
+    "name": "Salvation Army Food & Assistance",
+    "phone": "727-446-4177 / 727-882-4954 / 727-541-7781 / 727-323-2222",
+    "address": "1521 E Druid Rd",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "M,T,Th,F 9am-11:45am & 1pm-3:30pm",
+    "services": "Food & Assistance",
+    "lat": 27.9567,
+    "lon": -82.7738
+  },
+  {
+    "name": "Salvation Army Food & Assistance",
+    "phone": "727-446-4177 / 727-882-4954 / 727-541-7781 / 727-323-2222",
+    "address": "3800 9th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "M,T,Th,F 9am-11:45am & 1pm-3:30pm",
+    "services": "Food & Assistance",
+    "lat": 27.773,
+    "lon": -82.6512
+  },
+  {
+    "name": "St. Vincent de Paul Society",
+    "phone": "727-825-0725",
+    "address": "384 15th Street N",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "Food, Financial, Shelter",
+    "lat": 27.7701,
+    "lon": -82.644
+  },
+  {
+    "name": "Somebody Cares Tampa Bay",
+    "phone": "727-536-2273",
+    "address": "21903 US Hwy 19 N",
+    "city": "Clearwater",
+    "zip": "33765",
+    "county": "Pinellas",
+    "hours": "Tues & Fri 2pm-5pm",
+    "services": "Food Assistance",
+    "lat": 27.9721,
+    "lon": -82.7281
+  },
+  {
+    "name": "Suncoast Haven of Rest Mission",
+    "phone": "727-545-8282",
+    "address": "1763 9th Ave N",
+    "city": "St. Pete",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "M-F 10am-5pm; Sat 10am-1pm",
+    "services": "Food Assistance",
+    "lat": 27.7741,
+    "lon": -82.6435
+  },
+  {
+    "name": "Sylvan Abbey UMC",
+    "phone": "727-796-3057",
+    "address": "2817 Sunset Point Rd",
+    "city": "Clearwater",
+    "zip": "33759",
+    "county": "Pinellas",
+    "hours": "Mon 10am-1pm",
+    "services": "Food Pantry",
+    "lat": 27.9903,
+    "lon": -82.7204
+  },
+  {
+    "name": "Wesley United Methodist Church",
+    "phone": "727-896-4797",
+    "address": "301 37th Ave N",
+    "city": "St. Pete",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "MWF 9am-12pm",
+    "services": "Food Pantry",
+    "lat": 27.8061,
+    "lon": -82.6374
+  },
+  {
+    "name": "5th Ave Mentoring and Outreach Services",
+    "phone": "727-327-8699",
+    "address": "4200 5th Ave S",
+    "city": "St. Petersburg",
+    "zip": "33711",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.766,
+    "lon": -82.691
+  },
+  {
+    "name": "ATO Outreach",
+    "phone": "727-580-5622",
+    "address": "1111 18th Avenue South",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7523,
+    "lon": -82.6503
+  },
+  {
+    "name": "Bay Vista Church of Christ",
+    "phone": "727-867-1915",
+    "address": "5460 7th St S",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7189,
+    "lon": -82.642
+  },
+  {
+    "name": "Beaming Hope Church",
+    "phone": "727-521-7305",
+    "address": "11000 110th Avenue North",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8723,
+    "lon": -82.7921
+  },
+  {
+    "name": "Bethlehem SDA",
+    "phone": "727-442-6942",
+    "address": "1015 N Missouri Ave",
+    "city": "Clearwater",
+    "zip": "33755",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.976,
+    "lon": -82.788
+  },
+  {
+    "name": "Calvary Pantry",
+    "phone": "727-351-5176",
+    "address": "200 S McMullen Booth Rd",
+    "city": "Clearwater",
+    "zip": "33759",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9629,
+    "lon": -82.7094
+  },
+  {
+    "name": "Christ United Methodist Church",
+    "phone": "727-823-7710",
+    "address": "467 1st Avenue North",
+    "city": "St. Petersburg",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7724,
+    "lon": -82.6399
+  },
+  {
+    "name": "Coral Heights Local Neighborhood Association",
+    "phone": "727-584-9414",
+    "address": "3718 North 139th Avenue",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.87,
+    "lon": -82.81
+  },
+  {
+    "name": "Countryside Christian Center",
+    "phone": "727-726-4126",
+    "address": "1850 McMullen Booth Road",
+    "city": "Clearwater",
+    "zip": "33759",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9872,
+    "lon": -82.7101
+  },
+  {
+    "name": "Daystar Life Center",
+    "phone": "727-327-8699",
+    "address": "1055 28th St S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7595,
+    "lon": -82.6715
+  },
+  {
+    "name": "Dunedin Cares, Inc.",
+    "phone": "727-410-8495",
+    "address": "1630 Pinehurst Rd",
+    "city": "Dunedin",
+    "zip": "34698",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.0272,
+    "lon": -82.7727
+  },
+  {
+    "name": "Ebenezer New Testament Church",
+    "phone": "727-327-1972",
+    "address": "4668 15th Ave S",
+    "city": "St. Petersburg",
+    "zip": "33711",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7554,
+    "lon": -82.6972
+  },
+  {
+    "name": "Elevated Church",
+    "phone": "727-545-9700",
+    "address": "4371 76th Avenue North",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8419,
+    "lon": -82.6932
+  },
+  {
+    "name": "Family Center on Deafness",
+    "phone": "727-576-6887",
+    "address": "12455 62nd Street North #303",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8186,
+    "lon": -82.6931
+  },
+  {
+    "name": "FEAST",
+    "phone": "727-789-5275",
+    "address": "2255 Nebraska Ave",
+    "city": "Palm Harbor",
+    "zip": "34683",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.0801,
+    "lon": -82.7447
+  },
+  {
+    "name": "Feather Sound Church",
+    "phone": "727-577-7900",
+    "address": "4224 28th St N",
+    "city": "St. Petersburg",
+    "zip": "33714",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8106,
+    "lon": -82.6718
+  },
+  {
+    "name": "Feed St. Pete",
+    "phone": "727-432-3928",
+    "address": "5501 31st St S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7178,
+    "lon": -82.6761
+  },
+  {
+    "name": "Feeding Our Neighbors Program",
+    "phone": "727-726-4121",
+    "address": "1200 South Keene Road",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9522,
+    "lon": -82.763
+  },
+  {
+    "name": "Feeding Pinellas Empowerment Center",
+    "phone": "813-710-6269",
+    "address": "6330 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8204,
+    "lon": -82.7226
+  },
+  {
+    "name": "First Baptist Church of St Petersburg",
+    "phone": "727-525-2727",
+    "address": "1900 Gandy Blvd N",
+    "city": "St. Petersburg",
+    "zip": "33702",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8533,
+    "lon": -82.659
+  },
+  {
+    "name": "First United Methodist Church of Pinellas Park",
+    "phone": "727-546-5741",
+    "address": "9025 49th Street North",
+    "city": "Pinellas Park",
+    "zip": "33782",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8543,
+    "lon": -82.6991
+  },
+  {
+    "name": "Florida Dream Center",
+    "phone": "727-851-9074",
+    "address": "4515 38th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8071,
+    "lon": -82.6945
+  },
+  {
+    "name": "Florida Dream Center",
+    "phone": "727-851-9074",
+    "address": "4017 56th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8231,
+    "lon": -82.6878
+  },
+  {
+    "name": "Flowing River Church",
+    "phone": "727-449-1661",
+    "address": "1148 Turner Street",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9684,
+    "lon": -82.7617
+  },
+  {
+    "name": "Freedom Village I",
+    "phone": "727-541-3734",
+    "address": "7700 66th St N",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8412,
+    "lon": -82.73
+  },
+  {
+    "name": "Good Samaritan Church",
+    "phone": "727-544-8558",
+    "address": "6085 Park Blvd",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8395,
+    "lon": -82.7181
+  },
+  {
+    "name": "Greene Chapel AME Church",
+    "phone": "727-596-7001",
+    "address": "1905 134th Avenue",
+    "city": "Largo",
+    "zip": "33774",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8951,
+    "lon": -82.8069
+  },
+  {
+    "name": "Harvest of Hope",
+    "phone": "727-302-6789",
+    "address": "4682 40th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33714",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.808,
+    "lon": -82.6978
+  },
+  {
+    "name": "High Point NFC",
+    "phone": "727-588-4083",
+    "address": "5812 150th Ave N",
+    "city": "Clearwater",
+    "zip": "33760",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9085,
+    "lon": -82.7133
+  },
+  {
+    "name": "Hispanic Outreach Center ICAI",
+    "phone": "727-446-6352",
+    "address": "612 Franklin Street",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9428,
+    "lon": -82.7921
+  },
+  {
+    "name": "Holy Family Church SVDP",
+    "phone": "727-576-7480",
+    "address": "200 78th Ave NE",
+    "city": "St. Petersburg",
+    "zip": "33702",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8422,
+    "lon": -82.6326
+  },
+  {
+    "name": "Hope Villages od America",
+    "phone": "727-443-4031",
+    "address": "700 Druid Rd",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9577,
+    "lon": -82.7966
+  },
+  {
+    "name": "Interfaith Food Pantry Inc.",
+    "phone": "727-392-9365",
+    "address": "9530 Starkey Rd",
+    "city": "Seminole",
+    "zip": "33777",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8585,
+    "lon": -82.7636
+  },
+  {
+    "name": "Isaiah's Place",
+    "phone": "727-490-0589",
+    "address": "900 Doctor Martin Luther King Junior Street South",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7491,
+    "lon": -82.6619
+  },
+  {
+    "name": "Isaiah's Place",
+    "phone": "727-490-0589",
+    "address": "1619 16th Street South",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.749,
+    "lon": -82.6586
+  },
+  {
+    "name": "Kimberly Home Pregnancy Resource Center",
+    "phone": "727-442-5995",
+    "address": "1189 Northeast Cleveland Street",
+    "city": "Clearwater",
+    "zip": "33755",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9677,
+    "lon": -82.7882
+  },
+  {
+    "name": "Lealman / Asian NFC",
+    "phone": "727-528-3303",
+    "address": "4255 56th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33714",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8232,
+    "lon": -82.691
+  },
+  {
+    "name": "Love Thy Neighbor Community Store",
+    "phone": "727-345-0550",
+    "address": "913 72nd St N",
+    "city": "St. Petersburg",
+    "zip": "33710",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7769,
+    "lon": -82.7371
+  },
+  {
+    "name": "Macedonia Missionary Baptist Church",
+    "phone": "727-726-8700",
+    "address": "709 Butler Street",
+    "city": "Safety Harbor",
+    "zip": "34695",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9982,
+    "lon": -82.6949
+  },
+  {
+    "name": "Mattie Williams Neighborhood Family Center",
+    "phone": "727-669-0489",
+    "address": "1003 Dr Ml King Jr St N",
+    "city": "Safety Harbor",
+    "zip": "34695",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9939,
+    "lon": -82.6977
+  },
+  {
+    "name": "Mattie Williams NFC",
+    "phone": "727-669-0489",
+    "address": "1003 Doctor Martin Luther King Junior Street North",
+    "city": "Safety Harbor",
+    "zip": "34695",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9939,
+    "lon": -82.6977
+  },
+  {
+    "name": "Mercy Keepers Food Pantry",
+    "phone": "727-896-3305",
+    "address": "2021 9th Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7613,
+    "lon": -82.6606
+  },
+  {
+    "name": "Ministry of Helping Hands",
+    "phone": "727-586-8086",
+    "address": "2121 16th Ave SW",
+    "city": "Largo",
+    "zip": "33774",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9025,
+    "lon": -82.8096
+  },
+  {
+    "name": "Missio Dei",
+    "phone": "727-289-5753",
+    "address": "900 Dr. M.L.K. Jr St S",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7491,
+    "lon": -82.6619
+  },
+  {
+    "name": "MLK Town Center",
+    "phone": "727-328-3115",
+    "address": "540 2nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7692,
+    "lon": -82.641
+  },
+  {
+    "name": "Mt. Olive AME",
+    "phone": "727-447-0503",
+    "address": "600 Jones Street",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9693,
+    "lon": -82.7985
+  },
+  {
+    "name": "Neighborly Care Network",
+    "phone": "727-573-9977",
+    "address": "13945 Evergreen Avenue",
+    "city": "Clearwater",
+    "zip": "33762",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9193,
+    "lon": -82.7056
+  },
+  {
+    "name": "New Creation Family Church",
+    "phone": "727-347-5055",
+    "address": "100 Pasadena Avenue North",
+    "city": "St. Petersburg",
+    "zip": "33710",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7723,
+    "lon": -82.7316
+  },
+  {
+    "name": "New Hope Missionary Baptist",
+    "phone": "727-327-5656",
+    "address": "2120 19th St S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7492,
+    "lon": -82.6587
+  },
+  {
+    "name": "Northside Baptist Church",
+    "phone": "727-482-2128",
+    "address": "6000 38th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8058,
+    "lon": -82.7169
+  },
+  {
+    "name": "Northwest Presbyterian Church",
+    "phone": "727-544-4551",
+    "address": "6330 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8205,
+    "lon": -82.7226
+  },
+  {
+    "name": "Northwood Presbyterian Church Food Pantry",
+    "phone": "727-796-9711",
+    "address": "2875 FL-580",
+    "city": "Clearwater",
+    "zip": "34684",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.0188,
+    "lon": -82.7182
+  },
+  {
+    "name": "Oak Ridge Wesleyan",
+    "phone": "727-393-9182",
+    "address": "11000 110th Ave N",
+    "city": "Largo",
+    "zip": "33773",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8723,
+    "lon": -82.792
+  },
+  {
+    "name": "Oldsmar Cares",
+    "phone": "813-855-3455",
+    "address": "163 FL-580",
+    "city": "Oldsmar",
+    "zip": "34677",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.0378,
+    "lon": -82.6661
+  },
+  {
+    "name": "Operation Attack",
+    "phone": "727-822-1187",
+    "address": "1310 22nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7481,
+    "lon": -82.6528
+  },
+  {
+    "name": "Operation Hope of Pinellas",
+    "phone": "727-822-2437",
+    "address": "2901 54th Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7208,
+    "lon": -82.6723
+  },
+  {
+    "name": "Our Brothers Keeper",
+    "phone": "727-322-0004",
+    "address": "2670 22nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7483,
+    "lon": -82.6702
+  },
+  {
+    "name": "People that Love",
+    "phone": "727-822-7777",
+    "address": "817 5th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7777,
+    "lon": -82.6451
+  },
+  {
+    "name": "Positive Impact Ministries",
+    "phone": "727-328-5555",
+    "address": "1770 22nd Street South",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7526,
+    "lon": -82.6629
+  },
+  {
+    "name": "Praise Cathedral \u2013 Elevated Church",
+    "phone": "727-545-9700",
+    "address": "4371 76th Avenue North",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8419,
+    "lon": -82.6932
+  },
+  {
+    "name": "Progressive People's Action Free Store - Carl Schleck Park",
+    "phone": "727-821-7100",
+    "address": "6000 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8204,
+    "lon": -82.72
+  },
+  {
+    "name": "Rainbow Village @ Urban League",
+    "phone": "727-327-2081",
+    "address": "13420 Adams Circle",
+    "city": "Largo",
+    "zip": "33774",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8965,
+    "lon": -82.8112
+  },
+  {
+    "name": "Sacred Heart Church/His Heart Society",
+    "phone": "727-544-5445",
+    "address": "4661 82nd Ave N",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.846,
+    "lon": -82.6965
+  },
+  {
+    "name": "Saint Giles Food Pantry",
+    "phone": "727-545-2664",
+    "address": "8271 52nd St N",
+    "city": "Pinellas Park",
+    "zip": "33781",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8469,
+    "lon": -82.7034
+  },
+  {
+    "name": "Salvation Army (St. Petersburg)",
+    "phone": "727-323-2222",
+    "address": "310 14th Avenue South",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7565,
+    "lon": -82.6379
+  },
+  {
+    "name": "Salvation Army Clearwater",
+    "phone": "727-446-4177",
+    "address": "1521 Druid Road East",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9567,
+    "lon": -82.7738
+  },
+  {
+    "name": "Salvation Army Tarpon Springs",
+    "phone": "727-937-4711",
+    "address": "209 South Pinellas Avenue",
+    "city": "Tarpon Springs",
+    "zip": "34689",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.1448,
+    "lon": -82.7565
+  },
+  {
+    "name": "Sanderlin Neighborhood Family Center",
+    "phone": "727-321-9694",
+    "address": "2335 22nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7489,
+    "lon": -82.6658
+  },
+  {
+    "name": "Sixtieth (60th) St. Pantry",
+    "phone": "727-557-4061",
+    "address": "9309 60th Street",
+    "city": "Pinellas Park",
+    "zip": "33782",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8568,
+    "lon": -82.7157
+  },
+  {
+    "name": "Somebody Cares Tampa Bay",
+    "phone": "727-531-0600",
+    "address": "21903 US Hwy 19 N",
+    "city": "Clearwater",
+    "zip": "33765",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9721,
+    "lon": -82.7281
+  },
+  {
+    "name": "St. James UMC",
+    "phone": "727-577-5889",
+    "address": "845 87th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33702",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8519,
+    "lon": -82.6466
+  },
+  {
+    "name": "St. Joseph Church",
+    "phone": "727-867-3683",
+    "address": "2101 22nd Ave S",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7488,
+    "lon": -82.6611
+  },
+  {
+    "name": "St. Luke\u2019s United Methodist Church",
+    "phone": "727-327-4712",
+    "address": "4444 5th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7771,
+    "lon": -82.6937
+  },
+  {
+    "name": "St. Pete Dream Center",
+    "phone": "727-502-7788",
+    "address": "3567 Cypress Terrace",
+    "city": "Pinellas Park",
+    "zip": "33782",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8497,
+    "lon": -82.7204
+  },
+  {
+    "name": "St. Pete Free Clinic - Drive Thru - Deuces",
+    "phone": "727-823-3471",
+    "address": "2198 15th Avenue South",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7525,
+    "lon": -82.6629
+  },
+  {
+    "name": "St. Pete Free Clinic - Indoor Choice",
+    "phone": "727-823-3471",
+    "address": "863 3rd Ave N",
+    "city": "St. Petersburg",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7754,
+    "lon": -82.6462
+  },
+  {
+    "name": "St. Stefanos Food Pantry",
+    "phone": "727-345-6830",
+    "address": "3600 76th St N",
+    "city": "St. Petersburg",
+    "zip": "33710",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8048,
+    "lon": -82.7441
+  },
+  {
+    "name": "Sylvan Abbey United Methodist Food Pantry",
+    "phone": "727-797-0089",
+    "address": "2817 Sunset Point Rd",
+    "city": "Clearwater",
+    "zip": "33759",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9903,
+    "lon": -82.7204
+  },
+  {
+    "name": "Tarpon Springs Shepherd Center",
+    "phone": "727-938-1490",
+    "address": "304 South Pinellas Avenue",
+    "city": "Tarpon Springs",
+    "zip": "34689",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.1436,
+    "lon": -82.7569
+  },
+  {
+    "name": "The Gathering of Women",
+    "phone": "727-321-4485",
+    "address": "1801 34th Street South",
+    "city": "St. Petersburg",
+    "zip": "33712",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7648,
+    "lon": -82.675
+  },
+  {
+    "name": "The Rock Food Pantry",
+    "phone": "727-577-7900",
+    "address": "4224 28th St N",
+    "city": "St. Petersburg",
+    "zip": "33714",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8106,
+    "lon": -82.6718
+  },
+  {
+    "name": "Trinity Cafe",
+    "phone": "813-710-6269",
+    "address": "6330 54th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33709",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8204,
+    "lon": -82.7226
+  },
+  {
+    "name": "Trinity House",
+    "phone": "727-898-8400",
+    "address": "5701 16th St S",
+    "city": "St. Petersburg",
+    "zip": "33705",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7163,
+    "lon": -82.6559
+  },
+  {
+    "name": "Trinity Lutheran Church",
+    "phone": "727-894-7664",
+    "address": "401 5th St N",
+    "city": "St. Petersburg",
+    "zip": "33701",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.7767,
+    "lon": -82.6399
+  },
+  {
+    "name": "United Methodist Church-Seminole",
+    "phone": "727-392-4901",
+    "address": "5400 Seminole Blvd",
+    "city": "Seminole",
+    "zip": "33772",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8216,
+    "lon": -82.7882
+  },
+  {
+    "name": "Uno Food Pantry",
+    "phone": "727-726-0433",
+    "address": "302 South Jupiter Avenue",
+    "city": "Clearwater",
+    "zip": "33756",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.9622,
+    "lon": -82.7661
+  },
+  {
+    "name": "Victor Newman Ministries",
+    "phone": "727-461-5580",
+    "address": "380 Fulton Dr",
+    "city": "Largo",
+    "zip": "33771",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.913,
+    "lon": -82.7547
+  },
+  {
+    "name": "Wesley UMC",
+    "phone": "727-822-4592",
+    "address": "301 37th Ave N",
+    "city": "St. Petersburg",
+    "zip": "33713",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 27.8061,
+    "lon": -82.6374
+  },
+  {
+    "name": "World Outreach International",
+    "phone": "727-938-2494",
+    "address": "3333 Keystone Road",
+    "city": "Tarpon Springs",
+    "zip": "34688",
+    "county": "Pinellas",
+    "hours": "",
+    "services": "",
+    "lat": 28.1454,
+    "lon": -82.6819
+  },
+  {
+    "name": "53rd Ave. Church of Christ",
+    "phone": "941-753-4153",
+    "address": "3412 53rd Ave E.",
+    "city": "Bradenton",
+    "zip": "34203",
+    "county": "Manatee",
+    "hours": "Wednesday 8:30 AM - 11 AM",
+    "services": "",
+    "lat": 27.465,
+    "lon": -82.524
+  },
+  {
+    "name": "AM/FM",
+    "phone": "941-722-3228",
+    "address": "119 17th St W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "2nd Saturday 8 AM - 10 AM",
+    "services": "",
+    "lat": 27.525,
+    "lon": -82.565
+  },
+  {
+    "name": "Amazing Grace COGIC",
+    "phone": "941-737-4752",
+    "address": "905 9th Ave E",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Closed until further notice",
+    "services": "",
+    "lat": 27.519,
+    "lon": -82.554
+  },
+  {
+    "name": "Beracah 1st Haitian Church",
+    "phone": "941-746-3873",
+    "address": "2212 8th Ave E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "2nd & 4th Friday 11AM - 12:30 PM",
+    "services": "",
+    "lat": 27.4932,
+    "lon": -82.54
+  },
+  {
+    "name": "Bethany Baptist",
+    "phone": "941-302-3176",
+    "address": "26604 SR 64 E",
+    "city": "Myakka City",
+    "zip": "34251",
+    "county": "Manatee",
+    "hours": "1st Saturday 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.463,
+    "lon": -82.211
+  },
+  {
+    "name": "Bethel Church",
+    "phone": "941-243-5106",
+    "address": "1805 30th Ave W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "1st & 3rd Tues 11AM - 2PM",
+    "services": "",
+    "lat": 27.482,
+    "lon": -82.575
+  },
+  {
+    "name": "Bible Baptist Church of Palmetto",
+    "phone": "941-479-2619",
+    "address": "1750 6th Ave W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "2nd & 4th Friday 9:30 AM - 11:30 AM",
+    "services": "",
+    "lat": 27.532,
+    "lon": -82.575
+  },
+  {
+    "name": "Bradenton Spanish SDA",
+    "phone": "585-414-5740",
+    "address": "1107 6th St W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Wednesday 7:00 PM",
+    "services": "",
+    "lat": 27.492,
+    "lon": -82.581
+  },
+  {
+    "name": "Christ Episcopal Church",
+    "phone": "941-747-3709",
+    "address": "313 42nd St W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Thursday 2 PM - 4 PM",
+    "services": "",
+    "lat": 27.493,
+    "lon": -82.601
+  },
+  {
+    "name": "Church of Christ / MLK Ministry",
+    "phone": "941-748-2040",
+    "address": "204 MLK Ave.",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "Saturday 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.501,
+    "lon": -82.538
+  },
+  {
+    "name": "Church of Restoration",
+    "phone": "941-524-7562",
+    "address": "3505 5th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "1st & 3rd Tuesday 9 AM - 1 PM",
+    "services": "",
+    "lat": 27.505,
+    "lon": -82.528
+  },
+  {
+    "name": "City Life",
+    "phone": "941-749-0288",
+    "address": "1300 17th Ave W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Tuesday Dinner 6 PM - 7 PM",
+    "services": "",
+    "lat": 27.488,
+    "lon": -82.582
+  },
+  {
+    "name": "Community of Christ",
+    "phone": "941-545-3232",
+    "address": "5817 33rd St E",
+    "city": "Bradenton",
+    "zip": "34203",
+    "county": "Manatee",
+    "hours": "3rd Saturday 10 AM - 12 PM",
+    "services": "",
+    "lat": 27.453,
+    "lon": -82.502
+  },
+  {
+    "name": "Community Outreach",
+    "phone": "941-747-5847",
+    "address": "650 27th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "1st & 3rd Saturday 8:30 AM - 9:30 AM",
+    "services": "",
+    "lat": 27.512,
+    "lon": -82.547
+  },
+  {
+    "name": "CRPE",
+    "phone": "941-242-2515",
+    "address": "1621 66th Ave Ter E",
+    "city": "Sarasota",
+    "zip": "34243",
+    "county": "Manatee",
+    "hours": "Friday 5 PM - 7 PM",
+    "services": "",
+    "lat": 27.392,
+    "lon": -82.464
+  },
+  {
+    "name": "Beracah 1st Haitain Church",
+    "phone": "941-746-3873",
+    "address": "2212 8th Ave E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "2nd & 4th Friday 11AM - 12:30 PM",
+    "services": "",
+    "lat": 27.4932,
+    "lon": -82.54
+  },
+  {
+    "name": "Church of Christ/ MLK Ministry",
+    "phone": "941-748-2040",
+    "address": "204 MLK Ave.",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "Saturday 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.501,
+    "lon": -82.538
+  },
+  {
+    "name": "Community Outreach",
+    "phone": "941-747-5847",
+    "address": "650 27th St E.",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "1st & 3rd Saturday 8:30 AM - 9:30 AM",
+    "services": "",
+    "lat": 27.512,
+    "lon": -82.547
+  },
+  {
+    "name": "Dream Church",
+    "phone": "941-751-4673",
+    "address": "1820 53rd Ave W",
+    "city": "Bradenton",
+    "zip": "34207",
+    "county": "Manatee",
+    "hours": "1st & 3rd Saturday 10 AM - 12 PM",
+    "services": "",
+    "lat": 27.468,
+    "lon": -82.59
+  },
+  {
+    "name": "First Presbyterian of Bradenton",
+    "phone": "941-746-6141",
+    "address": "1402 Manatee Ave W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Tues. & Thurs. 9 AM - 12 PM",
+    "services": "",
+    "lat": 27.492,
+    "lon": -82.582
+  },
+  {
+    "name": "First United Methodist of Palmetto",
+    "phone": "941-722-1812",
+    "address": "330 11th Ave W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Tuesday 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.532,
+    "lon": -82.574
+  },
+  {
+    "name": "Fresh Start Housing Ministries",
+    "phone": "774-239-8694",
+    "address": "2711 17th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "2nd Wednesday 10 AM - Noon",
+    "services": "",
+    "lat": 27.507,
+    "lon": -82.538
+  },
+  {
+    "name": "Helping Hand Outreach",
+    "phone": "941-462-6825",
+    "address": "7215 1st Ave W",
+    "city": "Bradenton",
+    "zip": "34209",
+    "county": "Manatee",
+    "hours": "Thursday 9:30 AM - 2 PM",
+    "services": "",
+    "lat": 27.498,
+    "lon": -82.609
+  },
+  {
+    "name": "Hope and Restoration",
+    "phone": "941-251-4589",
+    "address": "5336 26th St W",
+    "city": "Bradenton",
+    "zip": "34207",
+    "county": "Manatee",
+    "hours": "3rd Sat./or by appt. 10 AM - 1 PM",
+    "services": "",
+    "lat": 27.466,
+    "lon": -82.578
+  },
+  {
+    "name": "Hope Church",
+    "phone": "941-531-3266",
+    "address": "1701 10th St W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Tuesday 10 AM - 12 PM",
+    "services": "",
+    "lat": 27.533,
+    "lon": -82.587
+  },
+  {
+    "name": "Hungers End Manatee",
+    "phone": "855-777-0259",
+    "address": "1802 14th St. W. #C",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Wednesday 10 AM - 12 PM",
+    "services": "",
+    "lat": 27.489,
+    "lon": -82.588
+  },
+  {
+    "name": "Increasing Joy Ministries",
+    "phone": "941-721-0684",
+    "address": "2515 37th St E",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Call for Appt. Call for Appt.",
+    "services": "",
+    "lat": 27.515,
+    "lon": -82.505
+  },
+  {
+    "name": "Joseph's Pantry- Genesis 41",
+    "phone": "941-746-6221",
+    "address": "2113 57th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "3rd Saturday 9 AM - 12 PM",
+    "services": "",
+    "lat": 27.486,
+    "lon": -82.501
+  },
+  {
+    "name": "Life Changers Int'l. World Ministries",
+    "phone": "941-417-2294",
+    "address": "406 10th Ave W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "1st & 3rd Saturday 8 AM - 10 AM",
+    "services": "",
+    "lat": 27.521,
+    "lon": -82.572
+  },
+  {
+    "name": "Life Changes Breakthrough Ministry",
+    "phone": "941-726-0153",
+    "address": "1445 Tallevast Rd",
+    "city": "Sarasota",
+    "zip": "34243",
+    "county": "Manatee",
+    "hours": "Wednesday 4 PM - 6 PM",
+    "services": "",
+    "lat": 27.385,
+    "lon": -82.47
+  },
+  {
+    "name": "Manatee Baptist Church",
+    "phone": "863-781-4767",
+    "address": "1501 7th Ave E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "Tuesday 10:30 AM - 11:30 AM",
+    "services": "",
+    "lat": 27.5,
+    "lon": -82.532
+  },
+  {
+    "name": "Mt. Carmel Community Center",
+    "phone": "941-981-5354",
+    "address": "1314 2nd Ave W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Mon thru Fri 9 AM - 12 PM",
+    "services": "",
+    "lat": 27.524,
+    "lon": -82.575
+  },
+  {
+    "name": "Mt. Raymond",
+    "phone": "941-722-7819",
+    "address": "2410 4th Ave E",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "1st, 3rd, 5th Saturday 12:30 PM - 3:00 PM",
+    "services": "",
+    "lat": 27.518,
+    "lon": -82.54
+  },
+  {
+    "name": "Myakka City Methodist Church",
+    "phone": "941-465-1360",
+    "address": "10525 Lebanon St",
+    "city": "Myakka City",
+    "zip": "34251",
+    "county": "Manatee",
+    "hours": "Friday 9 AM - 12 PM Sat 9 AM - 12 PM",
+    "services": "",
+    "lat": 27.396,
+    "lon": -82.23
+  },
+  {
+    "name": "Myakka Family Worship Center",
+    "phone": "941-322-1691",
+    "address": "33420 Singletary Rd",
+    "city": "Myakka City",
+    "zip": "33420",
+    "county": "Manatee",
+    "hours": "Call for Appt. Call for Appt.",
+    "services": "",
+    "lat": 27.364,
+    "lon": -82.235
+  },
+  {
+    "name": "Oneco Hope Global Methodist",
+    "phone": "941-755-5943",
+    "address": "2112 53rd Ave E",
+    "city": "Bradenton",
+    "zip": "34203",
+    "county": "Manatee",
+    "hours": "Thursday 9 AM - 11:30 AM Pantry 8:30 AM - 10:45 AM",
+    "services": "",
+    "lat": 27.466,
+    "lon": -82.512
+  },
+  {
+    "name": "Our Daily Bread",
+    "phone": "941-745-2992",
+    "address": "710 18th Ave W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Meal/Daily 10:00 Monday & Friday ONLY",
+    "services": "",
+    "lat": 27.484,
+    "lon": -82.587
+  },
+  {
+    "name": "Palmview First Baptist Church",
+    "phone": "941-722-5077",
+    "address": "415 49th St E",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Friday 4 PM - 6 PM 1st & 3rd Saturday",
+    "services": "",
+    "lat": 27.502,
+    "lon": -82.496
+  },
+  {
+    "name": "Parrish United Methodist Church",
+    "phone": "941-776-1539",
+    "address": "12180 US Hwy 301 N",
+    "city": "Parrish",
+    "zip": "34219",
+    "county": "Manatee",
+    "hours": "8 AM - 10 AM DRIVE-THRU ONLY",
+    "services": "",
+    "lat": 27.578,
+    "lon": -82.437
+  },
+  {
+    "name": "Rogers UMC",
+    "phone": "941-747-4361",
+    "address": "1100 15th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "Saturday 10 AM- 12 PM",
+    "services": "",
+    "lat": 27.5,
+    "lon": -82.532
+  },
+  {
+    "name": "Solid Rock",
+    "phone": "941-224-3133",
+    "address": "3319 9th St E",
+    "city": "Bradenton",
+    "zip": "34208",
+    "county": "Manatee",
+    "hours": "Sunday 1:00 - 3:00",
+    "services": "",
+    "lat": 27.505,
+    "lon": -82.527
+  },
+  {
+    "name": "Spanish Community Church",
+    "phone": "941-350-7492",
+    "address": "1804 53rd Ave E",
+    "city": "Bradenton",
+    "zip": "34203",
+    "county": "Manatee",
+    "hours": "2nd Wednesday 9 AM - 1 PM",
+    "services": "",
+    "lat": 27.467,
+    "lon": -82.51
+  },
+  {
+    "name": "St. George Episcopal Church",
+    "phone": "941-755-3606",
+    "address": "912 63rd Ave W",
+    "city": "Bradenton",
+    "zip": "34207",
+    "county": "Manatee",
+    "hours": "1st & 3rd Thursday 9:00 AM - 10:30 AM",
+    "services": "",
+    "lat": 27.462,
+    "lon": -82.599
+  },
+  {
+    "name": "St. John Missionary Baptist Church",
+    "phone": "941-722-2335",
+    "address": "104 17th St E",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Thursday 1:00 PM",
+    "services": "",
+    "lat": 27.525,
+    "lon": -82.565
+  },
+  {
+    "name": "St. Joseph Food Pantry",
+    "phone": "941-756-3732",
+    "address": "2704 33rd Ave W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Mon thru Fri 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.487,
+    "lon": -82.595
+  },
+  {
+    "name": "St. Luke Baptist",
+    "phone": "941-259-9434",
+    "address": "540 12th St Dr W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "3rd Saturday 9 AM - 12 PM",
+    "services": "",
+    "lat": 27.523,
+    "lon": -82.576
+  },
+  {
+    "name": "St. Mary 's Episcopal Church",
+    "phone": "941-722-5292",
+    "address": "1010 24th Ave W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "Tuesday 9 AM - 11 AM",
+    "services": "",
+    "lat": 27.522,
+    "lon": -82.568
+  },
+  {
+    "name": "St. Vincent De Paul Society",
+    "phone": "941-794-1328",
+    "address": "2850 75th St W",
+    "city": "Bradenton",
+    "zip": "34209",
+    "county": "Manatee",
+    "hours": "Call for Appt. Call for Appt.",
+    "services": "",
+    "lat": 27.498,
+    "lon": -82.609
+  },
+  {
+    "name": "Stillpoint Mission",
+    "phone": "941-748-6835",
+    "address": "1608 14th St W",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Friday 9:00 AM - 11:30 AM January 15th & 19th",
+    "services": "",
+    "lat": 27.488,
+    "lon": -82.588
+  },
+  {
+    "name": "Turner Chapel",
+    "phone": "941-722-9531",
+    "address": "317 11th St Dr W",
+    "city": "Palmetto",
+    "zip": "34221",
+    "county": "Manatee",
+    "hours": "February 12th & 16th 5:30 PM - 6:30 PM March 12th & 16th",
+    "services": "",
+    "lat": 27.531,
+    "lon": -82.57
+  },
+  {
+    "name": "Woodland Community Church",
+    "phone": "941-753-8588",
+    "address": "9607 SR 70 E",
+    "city": "Bradenton",
+    "zip": "34202",
+    "county": "Manatee",
+    "hours": "Friday 10 AM - 11 AM",
+    "services": "",
+    "lat": 27.456,
+    "lon": -82.462
+  },
+  {
+    "name": "Word of God Love Center",
+    "phone": "813-541-4398",
+    "address": "1203 1st St E",
+    "city": "Bradenton",
+    "zip": "34205",
+    "county": "Manatee",
+    "hours": "Call First Call First",
+    "services": "",
+    "lat": 27.497,
+    "lon": -82.532
+  }
+];
+
+// ── STATE ──
+let map, markersLayer, radiusCircle, searchCenter;
+let activeCounty = 'all';
+let nameFilter = '';
+let radiusFilterIds = null; // null = no radius filter; Set = filtered ids
+
+// ── ICON FACTORY ──
+function makeIcon(county, highlighted) {
+  const color = county === 'Manatee' ? '#e76f51' : '#2d6a4f';
+  const size = highlighted ? 32 : 26;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*1.3}" viewBox="0 0 26 34">
+    <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 21 13 21s13-11.25 13-21C26 5.82 20.18 0 13 0z" fill="${color}" opacity="${highlighted?1:0.85}"/>
+    <circle cx="13" cy="13" r="5" fill="white" opacity="0.9"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [size, size*1.3],
+    iconAnchor: [size/2, size*1.3],
+    popupAnchor: [0, -size*1.2]
+  });
+}
+
+// ── POPUP HTML ──
+function popupHTML(loc) {
+  const addr = [loc.address, loc.city, 'FL', loc.zip].filter(Boolean).join(', ');
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+  return `<div class="popup-inner">
+    <div class="popup-name">${esc(loc.name)}</div>
+    ${loc.address ? `<div class="popup-row"><span class="icon">📍</span><a href="${mapsUrl}" target="_blank" style="color:inherit;text-decoration:underline dotted">${esc(addr)}</a></div>` : ''}
+    ${loc.phone ? `<div class="popup-row"><span class="icon">📞</span><a href="tel:${loc.phone}" style="color:inherit">${esc(loc.phone)}</a></div>` : ''}
+    ${loc.hours ? `<div class="popup-row"><span class="icon">🕐</span>${esc(loc.hours)}</div>` : ''}
+    ${loc.services ? `<div class="popup-row"><span class="icon">🥫</span>${esc(loc.services)}</div>` : ''}
+    ${loc.county ? `<span class="popup-chip">${esc(loc.county)} County</span>` : ''}
+  </div>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── MARKER MAP (id → marker) ──
+const markerMap = {};
+
+// ── INIT MAP ──
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([27.85, -82.68], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+  markersLayer = L.layerGroup().addTo(map);
+  renderAll();
+}
+
+// ── VISIBLE LOCATIONS ──
+function visibleLocations() {
+  return RAW_LOCATIONS.filter((loc, i) => {
+    if (activeCounty !== 'all' && loc.county !== activeCounty) return false;
+    if (nameFilter && !loc.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+    if (radiusFilterIds !== null && !radiusFilterIds.has(i)) return false;
+    return true;
+  });
+}
+
+// ── RENDER ──
+function renderAll() {
+  markersLayer.clearLayers();
+  Object.keys(markerMap).forEach(k => delete markerMap[k]);
+
+  const visible = visibleLocations();
+  visible.forEach((loc, _) => {
+    const origIdx = RAW_LOCATIONS.indexOf(loc);
+    const marker = L.marker([loc.lat, loc.lon], { icon: makeIcon(loc.county, false) });
+    marker.bindPopup(popupHTML(loc), { maxWidth: 280 });
+    marker.on('click', () => highlightSidebarItem(origIdx));
+    markersLayer.addLayer(marker);
+    markerMap[origIdx] = marker;
+  });
+
+  renderSidebar(visible);
+  document.getElementById('headerCount').textContent = `${visible.length} location${visible.length !== 1 ? 's' : ''}`;
+}
+
+// ── SIDEBAR ──
+function renderSidebar(locations) {
+  const list = document.getElementById('sidebarList');
+  document.getElementById('sidebarCount').textContent = locations.length;
+
+  if (locations.length === 0) {
+    list.innerHTML = '<div class="no-results">No locations match your search.<br>Try adjusting filters or radius.</div>';
+    return;
+  }
+
+  list.innerHTML = locations.map(loc => {
+    const origIdx = RAW_LOCATIONS.indexOf(loc);
+    return `<div class="list-item" id="item-${origIdx}" onclick="clickSidebarItem(${origIdx})">
+      <div class="list-item-name">${esc(loc.name)}</div>
+      <div class="list-item-meta">
+        <span class="county-dot dot-${(loc.county||'').toLowerCase()}"></span>
+        <span>${esc(loc.city || loc.county + ' County')}</span>
+        ${loc.phone ? '<span>·</span><span>' + esc(loc.phone) + '</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clickSidebarItem(origIdx) {
+  const marker = markerMap[origIdx];
+  const loc = RAW_LOCATIONS[origIdx];
+  if (!marker) return;
+  map.setView([loc.lat, loc.lon], 15, { animate: true });
+  marker.openPopup();
+  highlightSidebarItem(origIdx);
+}
+
+function highlightSidebarItem(origIdx) {
+  document.querySelectorAll('.list-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('item-' + origIdx);
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ── COUNTY FILTER ──
+function filterCounty(county, btn) {
+  activeCounty = county;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ── NAME FILTER ──
+function filterByName(val) {
+  nameFilter = val;
+  renderAll();
+}
+
+// ── ZIP/RADIUS SEARCH ──
+// Uses browser's built-in zip→coord lookup via OpenStreetMap Nominatim
+async function searchRadius() {
+  const query = document.getElementById('zipInput').value.trim();
+  const miles = parseFloat(document.getElementById('radiusSelect').value);
+  if (!query) return;
+
+  // Simple ZIP→coords using known FL zip centroids + Nominatim fallback
+  const zipCoords = getKnownZipCoord(query);
+  if (zipCoords) {
+    applyRadius(zipCoords[0], zipCoords[1], miles, query);
+  } else {
+    alert('Could not find that location. Try a ZIP code like 33701 or 34205.');
+  }
+}
+
+function applyRadius(lat, lon, miles, label) {
+  searchCenter = { lat, lon };
+  const meters = miles * 1609.34;
+
+  // Remove old circle
+  if (radiusCircle) map.removeLayer(radiusCircle);
+  radiusCircle = L.circle([lat, lon], {
+    radius: meters,
+    color: '#2d6a4f',
+    fillColor: '#d8f3dc',
+    fillOpacity: 0.15,
+    weight: 2,
+    dashArray: '6 4'
+  }).addTo(map);
+
+  // Filter locations within radius
+  radiusFilterIds = new Set();
+  RAW_LOCATIONS.forEach((loc, i) => {
+    const dist = haversine(lat, lon, loc.lat, loc.lon);
+    if (dist <= miles) radiusFilterIds.add(i);
+  });
+
+  map.fitBounds(radiusCircle.getBounds(), { padding: [40, 40] });
+  document.getElementById('radiusInfo').style.display = 'block';
+  document.getElementById('radiusInfo').textContent =
+    `Showing locations within ${miles} mile${miles !== 1 ? 's' : ''} of ${label}`;
+  renderAll();
+}
+
+function clearSearch() {
+  radiusFilterIds = null;
+  if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+  document.getElementById('zipInput').value = '';
+  document.getElementById('radiusInfo').style.display = 'none';
+  map.setView([27.85, -82.68], 10);
+  renderAll();
+}
+
+// ── HAVERSINE DISTANCE (miles) ──
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── KNOWN FL ZIP CODE CENTROIDS ──
+function getKnownZipCoord(query) {
+  // Comprehensive Pinellas & Manatee zip codes
+  const zips = {
+    '33701': [27.7726, -82.6393], '33702': [27.8480, -82.6389],
+    '33703': [27.8140, -82.6280], '33704': [27.8010, -82.6340],
+    '33705': [27.7530, -82.6500], '33706': [27.7670, -82.7490],
+    '33707': [27.7540, -82.7290], '33708': [27.8110, -82.8130],
+    '33709': [27.8205, -82.7226], '33710': [27.7900, -82.7440],
+    '33711': [27.7580, -82.6950], '33712': [27.7490, -82.6700],
+    '33713': [27.7860, -82.6940], '33714': [27.8180, -82.6920],
+    '33715': [27.7310, -82.7230], '33716': [27.8560, -82.6780],
+    '33755': [27.9760, -82.8010], '33756': [27.9580, -82.7810],
+    '33759': [27.9820, -82.7170], '33760': [27.9100, -82.7100],
+    '33761': [28.0170, -82.7220], '33762': [27.9000, -82.6990],
+    '33763': [27.9980, -82.7620], '33764': [27.9320, -82.7490],
+    '33765': [27.9740, -82.7290], '33766': [27.9670, -82.7370],
+    '33770': [27.9220, -82.8070], '33771': [27.9060, -82.7500],
+    '33772': [27.8350, -82.7890], '33773': [27.8720, -82.7920],
+    '33774': [27.8950, -82.8100], '33777': [27.8580, -82.7630],
+    '33778': [27.8720, -82.7920], '33781': [27.8395, -82.7181],
+    '33782': [27.8560, -82.7160], '33785': [27.8990, -82.8470],
+    '33786': [27.8870, -82.8270], '34683': [28.0800, -82.7450],
+    '34684': [28.0550, -82.7260], '34685': [28.0760, -82.6920],
+    '34688': [28.1450, -82.6820], '34689': [28.1450, -82.7570],
+    '34695': [27.9960, -82.6930], '34697': [28.0110, -82.7700],
+    '34698': [28.0190, -82.7690], '34677': [28.0420, -82.6630],
+    // Manatee
+    '34201': [27.4310, -82.4880], '34202': [27.4520, -82.4610],
+    '34203': [27.4620, -82.5160], '34205': [27.4890, -82.5870],
+    '34207': [27.4670, -82.5870], '34208': [27.5000, -82.5320],
+    '34209': [27.4980, -82.6120], '34210': [27.4610, -82.6180],
+    '34211': [27.4820, -82.4450], '34212': [27.5110, -82.4080],
+    '34219': [27.5780, -82.4370], '34221': [27.5230, -82.5700],
+    '34222': [27.5400, -82.5000], '34228': [27.3840, -82.6110],
+    '34241': [27.3790, -82.4310], '34243': [27.3920, -82.4640],
+    '34251': [27.3960, -82.2300],
+  };
+  const q = query.trim();
+  if (zips[q]) return zips[q];
+
+  // Try partial match
+  for (const [zip, coord] of Object.entries(zips)) {
+    if (q.startsWith(zip.substring(0,4))) return coord;
+  }
+  return null;
+}
+
+// ── START ──
+window.addEventListener('DOMContentLoaded', initMap);
+</script>
+</body>
+</html>

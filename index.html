@@ -12,10 +12,10 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --green: #2d6a4f;
-    --green-light: #40916c;
-    --green-pale: #d8f3dc;
-    --green-mid: #b7e4c7;
+    --blue: #095b79;
+    --blue-light: #0e7fa8;
+    --blue-pale: #ddf0f7;
+    --blue-mid: #a8d8e8;
     --cream: #faf7f2;
     --text: #1a1a1a;
     --muted: #6b7280;
@@ -38,7 +38,7 @@
 
   /* ── HEADER ── */
   header {
-    background: var(--green);
+    background: var(--blue);
     color: white;
     padding: 14px 24px;
     display: flex;
@@ -54,7 +54,7 @@
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
-  header .logo span { color: var(--green-mid); }
+  header .logo span { color: var(--blue-mid); }
   header .tagline {
     font-size: 0.8rem;
     color: rgba(255,255,255,0.7);
@@ -96,7 +96,7 @@
     outline: none;
     transition: border-color 0.2s;
   }
-  .search-bar input:focus { border-color: var(--green-light); }
+  .search-bar input:focus { border-color: var(--blue-light); }
   .search-bar select {
     border: 1.5px solid var(--border);
     border-radius: 8px;
@@ -108,7 +108,7 @@
     cursor: pointer;
   }
   .btn {
-    background: var(--green);
+    background: var(--blue);
     color: white;
     border: none;
     border-radius: 8px;
@@ -120,13 +120,13 @@
     transition: background 0.2s;
     white-space: nowrap;
   }
-  .btn:hover { background: var(--green-light); }
+  .btn:hover { background: var(--blue-light); }
   .btn-outline {
     background: transparent;
-    color: var(--green);
-    border: 1.5px solid var(--green);
+    color: var(--blue);
+    border: 1.5px solid var(--blue);
   }
-  .btn-outline:hover { background: var(--green-pale); }
+  .btn-outline:hover { background: var(--blue-pale); }
   .county-filters {
     display: flex;
     gap: 6px;
@@ -143,9 +143,9 @@
     transition: all 0.15s;
   }
   .filter-chip.active {
-    background: var(--green);
+    background: var(--blue);
     color: white;
-    border-color: var(--green);
+    border-color: var(--blue);
   }
 
   /* ── MAIN LAYOUT ── */
@@ -180,8 +180,8 @@
     color: var(--text);
   }
   .sidebar-header .count-badge {
-    background: var(--green-pale);
-    color: var(--green);
+    background: var(--blue-pale);
+    color: var(--blue);
     font-size: 0.75rem;
     font-weight: 600;
     padding: 2px 8px;
@@ -203,7 +203,7 @@
     background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
     transition: border-color 0.2s;
   }
-  .sidebar-search input:focus { border-color: var(--green-light); }
+  .sidebar-search input:focus { border-color: var(--blue-light); }
   .sidebar-list {
     overflow-y: auto;
     flex: 1;
@@ -222,8 +222,8 @@
     flex-direction: column;
     gap: 3px;
   }
-  .list-item:hover { background: var(--green-pale); }
-  .list-item.active { background: var(--green-pale); border-left: 3px solid var(--green); }
+  .list-item:hover { background: var(--blue-pale); }
+  .list-item.active { background: var(--blue-pale); border-left: 3px solid var(--blue); }
   .list-item-name {
     font-size: 0.85rem;
     font-weight: 600;
@@ -243,8 +243,8 @@
     display: inline-block;
     flex-shrink: 0;
   }
-  .dot-pinellas { background: var(--green); }
-  .dot-manatee { background: #e76f51; }
+  .dot-pinellas { background: var(--blue); }
+  .dot-manatee { background: #f0a320; }
   .no-results {
     padding: 40px 20px;
     text-align: center;
@@ -290,7 +290,7 @@
   .popup-name {
     font-family: 'DM Serif Display', serif;
     font-size: 1.05rem;
-    color: var(--green);
+    color: var(--blue);
     line-height: 1.3;
     margin-bottom: 10px;
   }
@@ -306,8 +306,8 @@
   .popup-row .icon { flex-shrink: 0; margin-top: 1px; }
   .popup-chip {
     display: inline-block;
-    background: var(--green-pale);
-    color: var(--green);
+    background: var(--blue-pale);
+    color: var(--blue);
     font-size: 0.72rem;
     padding: 2px 8px;
     border-radius: 10px;
@@ -331,10 +331,10 @@
 
 <header>
   <div class="header-left">
-    <div class="logo">Food <span>Resources</span> Map</div>
+    <div class="logo">Good Neighbors <span>Food Resources</span> Map</div>
     <div class="tagline">Pinellas &amp; Manatee Counties, Florida</div>
   </div>
-  <div class="header-count" id="headerCount">174 locations</div>
+  <div class="header-count" id="headerCount">166 locations</div>
 </header>
 
 <div class="search-bar">
@@ -361,7 +361,7 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h2>Locations</h2>
-      <span class="count-badge" id="sidebarCount">174</span>
+      <span class="count-badge" id="sidebarCount">166</span>
     </div>
     <div class="sidebar-search">
       <input type="text" id="nameSearch" placeholder="Filter by name..." oninput="filterByName(this.value)">
@@ -687,7 +687,7 @@ const RAW_LOCATIONS = [
     "lon": -82.6462
   },
   {
-    "name": "Salvation Army Food & Assistance",
+    "name": "Salvation Army - Clearwater",
     "phone": "727-446-4177 / 727-882-4954 / 727-541-7781 / 727-323-2222",
     "address": "1521 E Druid Rd",
     "city": "Clearwater",
@@ -699,7 +699,7 @@ const RAW_LOCATIONS = [
     "lon": -82.7738
   },
   {
-    "name": "Salvation Army Food & Assistance",
+    "name": "Salvation Army - St. Petersburg",
     "phone": "727-446-4177 / 727-882-4954 / 727-541-7781 / 727-323-2222",
     "address": "3800 9th Ave N",
     "city": "St. Petersburg",
@@ -880,7 +880,7 @@ const RAW_LOCATIONS = [
   },
   {
     "name": "Daystar Life Center",
-    "phone": "727-327-8699",
+    "phone": "727-825-0442",
     "address": "1055 28th St S",
     "city": "St. Petersburg",
     "zip": "33712",
@@ -1071,18 +1071,6 @@ const RAW_LOCATIONS = [
     "lon": -82.73
   },
   {
-    "name": "Good Samaritan Church",
-    "phone": "727-544-8558",
-    "address": "6085 Park Blvd",
-    "city": "Pinellas Park",
-    "zip": "33781",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.8395,
-    "lon": -82.7181
-  },
-  {
     "name": "Greene Chapel AME Church",
     "phone": "727-596-7001",
     "address": "1905 134th Avenue",
@@ -1141,18 +1129,6 @@ const RAW_LOCATIONS = [
     "services": "",
     "lat": 27.8422,
     "lon": -82.6326
-  },
-  {
-    "name": "Hope Villages od America",
-    "phone": "727-443-4031",
-    "address": "700 Druid Rd",
-    "city": "Clearwater",
-    "zip": "33756",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.9577,
-    "lon": -82.7966
   },
   {
     "name": "Interfaith Food Pantry Inc.",
@@ -1359,30 +1335,6 @@ const RAW_LOCATIONS = [
     "lon": -82.6587
   },
   {
-    "name": "Northside Baptist Church",
-    "phone": "727-482-2128",
-    "address": "6000 38th Ave N",
-    "city": "St. Petersburg",
-    "zip": "33709",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.8058,
-    "lon": -82.7169
-  },
-  {
-    "name": "Northwest Presbyterian Church",
-    "phone": "727-544-4551",
-    "address": "6330 54th Ave N",
-    "city": "St. Petersburg",
-    "zip": "33709",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.8205,
-    "lon": -82.7226
-  },
-  {
     "name": "Northwood Presbyterian Church Food Pantry",
     "phone": "727-796-9711",
     "address": "2875 FL-580",
@@ -1395,18 +1347,6 @@ const RAW_LOCATIONS = [
     "lon": -82.7182
   },
   {
-    "name": "Oak Ridge Wesleyan",
-    "phone": "727-393-9182",
-    "address": "11000 110th Ave N",
-    "city": "Largo",
-    "zip": "33773",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.8723,
-    "lon": -82.792
-  },
-  {
     "name": "Oldsmar Cares",
     "phone": "813-855-3455",
     "address": "163 FL-580",
@@ -1417,18 +1357,6 @@ const RAW_LOCATIONS = [
     "services": "",
     "lat": 28.0378,
     "lon": -82.6661
-  },
-  {
-    "name": "Operation Attack",
-    "phone": "727-822-1187",
-    "address": "1310 22nd Ave S",
-    "city": "St. Petersburg",
-    "zip": "33712",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.7481,
-    "lon": -82.6528
   },
   {
     "name": "Operation Hope of Pinellas",
@@ -1597,18 +1525,6 @@ const RAW_LOCATIONS = [
     "services": "",
     "lat": 27.8568,
     "lon": -82.7157
-  },
-  {
-    "name": "Somebody Cares Tampa Bay",
-    "phone": "727-531-0600",
-    "address": "21903 US Hwy 19 N",
-    "city": "Clearwater",
-    "zip": "33765",
-    "county": "Pinellas",
-    "hours": "",
-    "services": "",
-    "lat": 27.9721,
-    "lon": -82.7281
   },
   {
     "name": "St. James UMC",
@@ -2043,18 +1959,6 @@ const RAW_LOCATIONS = [
     "lon": -82.538
   },
   {
-    "name": "Community Outreach",
-    "phone": "941-747-5847",
-    "address": "650 27th St E.",
-    "city": "Bradenton",
-    "zip": "34208",
-    "county": "Manatee",
-    "hours": "1st & 3rd Saturday 8:30 AM - 9:30 AM",
-    "services": "",
-    "lat": 27.512,
-    "lon": -82.547
-  },
-  {
     "name": "Dream Church",
     "phone": "941-751-4673",
     "address": "1820 53rd Ave W",
@@ -2472,7 +2376,7 @@ let radiusFilterIds = null; // null = no radius filter; Set = filtered ids
 
 // ── ICON FACTORY ──
 function makeIcon(county, highlighted) {
-  const color = county === 'Manatee' ? '#e76f51' : '#2d6a4f';
+  const color = county === 'Manatee' ? '#f0a320' : '#095b79';
   const size = highlighted ? 32 : 26;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*1.3}" viewBox="0 0 26 34">
     <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 21 13 21s13-11.25 13-21C26 5.82 20.18 0 13 0z" fill="${color}" opacity="${highlighted?1:0.85}"/>
@@ -2628,8 +2532,8 @@ function applyRadius(lat, lon, miles, label) {
   if (radiusCircle) map.removeLayer(radiusCircle);
   radiusCircle = L.circle([lat, lon], {
     radius: meters,
-    color: '#2d6a4f',
-    fillColor: '#d8f3dc',
+    color: '#095b79',
+    fillColor: '#ddf0f7',
     fillOpacity: 0.15,
     weight: 2,
     dashArray: '6 4'
